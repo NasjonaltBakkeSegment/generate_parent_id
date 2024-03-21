@@ -2,6 +2,7 @@ from sentinelsat import SentinelAPI
 import uuid
 import yaml
 import argparse
+import re
 
 
 def get_config():
@@ -17,22 +18,16 @@ def get_product_metadata(product_name, cfg):
     web = 'https://colhub-archive.met.no/'
     api = SentinelAPI(username, password, web)
     all_metadata = api.query(filename=product_name+'*')
-    #TODO: s3 not querying, also check whether product type is worth using for S3 and what to use as parent
-    #TODO: s5
+    #TODO: s3 not querying for products after november 2023
     platform = product_name.split('_')[0]
     uuid = list(all_metadata.keys())[0]
     metadata = {
         'uuid': uuid,
         'platform': platform,
+        'producttype': all_metadata[uuid]['producttype']
     }
     if platform.startswith('S1'):
-        metadata['producttype'] = all_metadata[uuid]['producttype']
         metadata['mode'] = product_name.split('_')[1]
-    elif platform.startswith('S2'):
-        metadata['productlevel'] = product_name.split('_')[1]
-    elif platform.startswith('S3'):
-        metadata['producttype'] = all_metadata[uuid]['producttype']
-        metadata['sensor'] = product_name.split('_')[1]
 
     return metadata
 
