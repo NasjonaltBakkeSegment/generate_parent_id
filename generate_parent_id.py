@@ -2,7 +2,7 @@ from sentinelsat import SentinelAPI
 import uuid
 import yaml
 import argparse
-import re
+import contextlib
 
 
 def get_config():
@@ -25,19 +25,24 @@ def get_product_metadata(product_name, cfg):
     password = cfg['colhub_archive_credentials']['password']
     web = 'https://colhub-archive.met.no/'
     api = SentinelAPI(username, password, web)
-    all_metadata = api.query(filename=product_name+'*')
+    with contextlib.redirect_stdout(None):
+        all_metadata = api.query(filename=product_name+'*')
+    #all_metadata = api.query(filename=product_name+'*')
     #TODO: s3 not querying for products after november 2023
     platform = product_name.split('_')[0]
-    uuid = list(all_metadata.keys())[0]
-    metadata = {
-        'uuid': uuid,
-        'platform': platform,
-        'producttype': all_metadata[uuid]['producttype']
-    }
-    if platform.startswith('S1'):
-        metadata['mode'] = product_name.split('_')[1]
+    try:
+        uuid = list(all_metadata.keys())[0]
+        metadata = {
+            'uuid': uuid,
+            'platform': platform,
+            'producttype': all_metadata[uuid]['producttype']
+        }
+        if platform.startswith('S1'):
+            metadata['mode'] = product_name.split('_')[1]
 
-    return metadata
+        return metadata
+    except:
+        raise ValueError(f'Product {product_name} not found')
 
 
 def generate_v5_uuid(text):
