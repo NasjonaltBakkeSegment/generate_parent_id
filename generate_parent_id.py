@@ -12,6 +12,14 @@ def get_config():
         return cfg
 
 
+def name_parent(metadata):
+    if metadata['platform'].startswith('S1'):
+        parent_name = f"{metadata['platform']}_{metadata['mode']}_{metadata['producttype']}"
+    else:
+        parent_name = f"{metadata['platform']}_{metadata['producttype']}"
+    return parent_name
+
+
 def get_product_metadata(product_name, cfg):
     username = cfg['colhub_archive_credentials']['username']
     password = cfg['colhub_archive_credentials']['password']
@@ -50,7 +58,8 @@ def generate_parent_id(child_product_name):
     cfg = get_config()
     metadata = get_product_metadata(child_product_name, cfg)
     parentid = parent_id_from_metadata(metadata)
-    return parentid, metadata
+    parent_name = name_parent(metadata)
+    return parentid, metadata, parent_name
 
 
 if __name__ == "__main__":
@@ -67,5 +76,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     product_name = args.product_name
-    parent_id, metadata = generate_parent_id(product_name)
-    print("Generated Parent ID:", parent_id, '\nAssociated Metadata:', metadata)
+    parent_id, metadata, parent_name = generate_parent_id(product_name)
+    print("Generated Parent ID:", parent_id, '\nName:', parent_name, '\nAssociated Metadata:', metadata)
