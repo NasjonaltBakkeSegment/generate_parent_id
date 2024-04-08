@@ -1,48 +1,51 @@
 from sentinelsat import SentinelAPI
 import uuid
-import yaml
 import argparse
-import contextlib
-
-
-def get_config():
-    file_path = "config/config.yml"
-    with open(file_path, "r") as yaml_file:
-        cfg = yaml.safe_load(yaml_file)
-        return cfg
 
 
 def name_parent(metadata):
     if metadata['platform'].startswith('S1'):
         parent_name = f"{metadata['platform']}_{metadata['mode']}_{metadata['producttype']}"
-    else:
+    elif metadata['platform'].startswith('S2'):
         parent_name = f"{metadata['platform']}_{metadata['producttype']}"
+    elif metadata['platform'].startswith('S3'):
+        parent_name = f"{metadata['platform']}_{metadata['instrument']}"
+    elif metadata['platform'].startswith('S5'):
+        parent_name = f"{metadata['platform']}_{metadata['producttype']}"
+
     return parent_name
 
 
-def get_product_metadata(product_name, cfg):
-    username = cfg['colhub_archive_credentials']['username']
-    password = cfg['colhub_archive_credentials']['password']
-    web = 'https://colhub-archive.met.no/'
-    api = SentinelAPI(username, password, web)
-    with contextlib.redirect_stdout(None):
-        all_metadata = api.query(filename=product_name+'*')
-    #all_metadata = api.query(filename=product_name+'*')
-    #TODO: s3 not querying for products after november 2023
-    platform = product_name.split('_')[0]
-    try:
-        uuid = list(all_metadata.keys())[0]
-        metadata = {
-            'uuid': uuid,
-            'platform': platform,
-            'producttype': all_metadata[uuid]['producttype']
-        }
-        if platform.startswith('S1'):
-            metadata['mode'] = product_name.split('_')[1]
+def get_product_metadata(product_name):
 
-        return metadata
-    except:
+    # TODO: Get metadata from file name so we don't have to query.
+    platform = product_name.split('_')[0]
+    metadata = {
+        'platform': platform
+    }
+
+    if platform.startswith('S1'):
+        metadata['mode'] = product_name.split('_')[1]
+        metadata['producttype'] = product_name.split('_')[2]
+    elif platform.startswith('S2'):
+        metadata['producttype'] = product_name.split('_')[1]
+    elif platform.startswith('S3'):
+        short_name = product_name.split('_')[1]
+        if short_name == 'OL':
+            metadata['instrument'] = 'OLCI'
+        elif short_name == 'SL':
+            metadata['instrument'] = 'SLSTR'
+        elif short_name == 'SY':
+            metadata['instrument'] = 'Synergy'
+        elif short_name == 'SR':
+            metadata['instrument'] = 'SRAL'
+    elif platform.startswith('S5'):
+        metadata['producttype'] = product_name[9:19]
+    else:
         raise ValueError(f'Product {product_name} not found')
+
+
+    return metadata
 
 
 def generate_v5_uuid(text):
@@ -60,8 +63,7 @@ def parent_id_from_metadata(metadata):
 
 def generate_parent_id(child_product_name):
     child_product_name = child_product_name.split('.')[0]
-    cfg = get_config()
-    metadata = get_product_metadata(child_product_name, cfg)
+    metadata = get_product_metadata(child_product_name)
     parentid = parent_id_from_metadata(metadata)
     parent_name = name_parent(metadata)
     return parentid, metadata, parent_name
