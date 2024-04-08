@@ -1,4 +1,3 @@
-from sentinelsat import SentinelAPI
 import uuid
 import argparse
 
@@ -44,7 +43,6 @@ def get_product_metadata(product_name):
     else:
         raise ValueError(f'Product {product_name} not found')
 
-
     return metadata
 
 
@@ -84,4 +82,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     product_name = args.product_name
     parent_id, metadata, parent_name = generate_parent_id(product_name)
-    print("Generated Parent ID:", parent_id, '\nName:', parent_name, '\nAssociated Metadata:', metadata)
